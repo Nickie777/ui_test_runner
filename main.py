@@ -1,9 +1,9 @@
 import os
 import subprocess
-from fastapi import FastAPI, Request
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
 from playwright.sync_api import sync_playwright
+from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from pytest_playwright.pytest_playwright import output_path
 
 VIDEO_DIR = "videos"
@@ -80,3 +80,34 @@ def run_generated():
         "stderr": result.stderr,
         "returncode": result.returncode
     }
+
+@app.websocket("/ws/run-generated")
+async def websocket_run_generated(ws: WebSocket, GENERATED_FILE="generated_scenario.py"):
+    await ws.accept()
+
+    if not os.path.exists(GENERATED_FILE):
+        await ws.send_text("Error: generated_scenario.py not found")
+        await ws.close()
+        return
+
+    # Запуск скрипта как subprocess
+    process = subprocess.Popen(
+        ["python", GENERATED_FILE],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True
+    )
+
+    try:
+        # Чтение stdout по строчно и отправка в вебсокет
+        while True:
+            line = process.stdout.readline()
+            if line:
+                await ws.send_text(line.strip())
+            elif process.poll() is not None:
+                break
+
+        # Дошли до конца
+        await ws.send_text(f"Process finished with return code {process.returncode}")
+    except WebSocketDisconnect:
+        process.kill()

@@ -1,8 +1,19 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <link rel="stylesheet" href="/styles.css" />
     <title>UI Тесты</title>
+    <style>
+        #log {
+            border: 1px solid #ccc;
+            height: 300px;
+            overflow-y: scroll;
+            padding: 5px;
+            background: #f9f9f9;
+            font-family: monospace;
+        }
+    </style>
 </head>
 <body>
     <h1>Проигрыватель сценариев тестирования</h1>
@@ -18,6 +29,29 @@
     <form action="/run-generated">
     <button type="submit">-->> Play Test</button>
     </form>
+
+<button onclick="runGenerated()">Play Generated Test</button>
+
+    <h2>Log Output:</h2>
+    <div id="log"></div>
+
+    <script>
+        function runGenerated() {
+            const logDiv = document.getElementById('log');
+            logDiv.innerHTML = ""; // очистить лог
+
+            const ws = new WebSocket("ws://" + location.host + "/ws/run-generated");
+
+            ws.onmessage = function(event) {
+                logDiv.innerHTML += event.data + "<br>";
+                logDiv.scrollTop = logDiv.scrollHeight; // автопрокрутка
+            };
+
+            ws.onclose = function() {
+                logDiv.innerHTML += "<br><b>Connection closed</b>";
+            };
+        }
+    </script>
 
 </body>
 </html>
