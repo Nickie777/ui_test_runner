@@ -61,3 +61,22 @@ def start_codegen():
         ]
     )
     return {"status": "Codegen started"}
+
+@app.get("/run-generated")
+def run_generated():
+    file_to_run = "generated_scenario.py"
+
+    if not os.path.exists(file_to_run):
+        return {"error": "File not found"}
+
+    # Запускаем код в отдельном процессе
+    result = subprocess.run(
+        ["python", file_to_run],
+        capture_output=True, text=True
+    )
+
+    return {
+        "stdout": result.stdout,
+        "stderr": result.stderr,
+        "returncode": result.returncode
+    }
